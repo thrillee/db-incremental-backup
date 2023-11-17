@@ -8,7 +8,7 @@ import (
 )
 
 var manualBackUpCMD = &cobra.Command{
-	Use:   "manual backup",
+	Use:   "manual",
 	Short: "This is a program that helps run manual backup database table",
 	Long:  `This is a program that helps run manual backup database table. `,
 	Run:   handleManualBackUp,
@@ -18,7 +18,7 @@ func init() {
 	rootCmd.AddCommand(manualBackUpCMD)
 
 	manualBackUpCMD.Flags().StringP("start", "s", "", "Enter the starting time for backup e.g 2023-01-01 00:00:00")
-	manualBackUpCMD.Flags().DurationP("duration", "d", 1, "Duration in hours")
+	manualBackUpCMD.Flags().IntP("duration", "d", 1, "Duration in hours")
 }
 
 func handleManualBackUp(cmd *cobra.Command, args []string) {
@@ -36,10 +36,10 @@ func handleManualBackUp(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
-	duration, err := cmd.Flags().GetDuration("duration")
+	duration, err := cmd.Flags().GetInt("duration")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	internals.ManualBackup(startTime, int(duration))
+	internals.ManualBackup(startTime, duration)
 }

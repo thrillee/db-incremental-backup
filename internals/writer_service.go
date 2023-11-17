@@ -59,7 +59,7 @@ func loadDBTables() []string {
 }
 
 func updateNextBackupSchedule(oldEndTime time.Time, backUpDuration int) (time.Time, time.Time) {
-	startTime := oldEndTime.Add(time.Duration(1) * time.Second)
+	startTime := oldEndTime
 	endTime := startTime.Add(time.Duration(backUpDuration) * time.Hour)
 
 	return startTime, endTime

@@ -11,7 +11,7 @@ var restoreCMD = &cobra.Command{
 	Use:   "restore",
 	Short: "This is a program that helps run restore database table",
 	Long:  `This is a program that helps run restore database table. `,
-	Run:   handleManualBackUp,
+	Run:   handleRestore,
 }
 
 func init() {
@@ -26,20 +26,15 @@ func handleRestore(cmd *cobra.Command, args []string) {
 	log.Println("DEV: thrillee")
 	defer log.Println(">>>>>>>>>>>Restore Service Completed<<<<<<<<<<<")
 
-	startTimeStr, err := cmd.Flags().GetString("start")
+	manifest, err := cmd.Flags().GetString("manifest")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	startTime, err := fromDBTime(startTimeStr)
+	backup, err := cmd.Flags().GetString("backup")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	duration, err := cmd.Flags().GetDuration("duration")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	internals.ManualBackup(startTime, int(duration))
+	internals.HandleBackUpRead(manifest, backup)
 }

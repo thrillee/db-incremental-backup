@@ -27,25 +27,24 @@ func processManifest(manifestData []ManifestData, backUpFileDir string) {
 
 	for _, md := range manifestData {
 		loadCSV(md, backUpFileDir)
+		insertRestoreEvent(md)
 	}
 }
 
-func insertRestoreEvent(md ManifestData) (string, error) {
+func insertRestoreEvent(md ManifestData) {
 	log.Printf(">>>>>>>>>>>>>>>>>>Inserting Restore Event<<<<<<<<<<<<<<<<<<\n")
 	defer log.Printf(">>>>>>>>>>>>>>>>>>Inserting Restore Completed<<<<<<<<<<<<<<<<<<\n")
 
 	log.Printf("Table: %s", md.Table)
 	log.Printf("Duration: %v to %v", md.StartTime, md.EndTime)
 
-	ref, err := createBackEvent(CreateBackEventData{
+	createBackEvent(CreateBackEventData{
 		startTime: md.StartTime,
 		endTime:   md.EndTime,
 		table:     md.Table,
 		state:     PROCESS_STATE_RESTORE,
 		status:    BACKUP_STATUS_COMPLETED,
 	})
-
-	return ref, err
 }
 
 func loadCSV(md ManifestData, backUpFileDir string) {
@@ -58,6 +57,9 @@ func loadCSV(md ManifestData, backUpFileDir string) {
 	loadQuery := fmt.Sprintf("LOAD DATA INFILE '%s' INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n'",
 		backFilePath, md.Table)
 	_, err := db.Exec(loadQuery)
+	fmt.Println(err)
+
+	log.Printf("Query: %s", loadQuery)
 	errCheck(err)
 }
 
