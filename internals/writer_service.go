@@ -24,7 +24,7 @@ type ManifestData struct {
 func makeExport(tableName, dateSuffix, db_export_dir string) (string, error) {
 	/* /var/lib/mysql-files/ */
 	fileName := fmt.Sprintf("%s-%s.csv", tableName, dateSuffix)
-	export_dir := fmt.Sprintf("%s/%s", db_export_dir, fileName)
+	export_dir := strings.ReplaceAll(fmt.Sprintf("%s/%s", db_export_dir, fileName), " ", "-")
 	log.Printf("Export Dir: %s", export_dir)
 
 	export_query_str := fmt.Sprintf(
