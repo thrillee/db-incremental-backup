@@ -19,43 +19,33 @@ type ManifestData struct {
 	Ref       string `json:"ref"`
 	StartTime string `json:"startTime"`
 	EndTime   string `json:"endTime"`
+	DateField string `json:"dateField"`
 }
 
-func makeExport(tableName, dateSuffix, db_export_dir string) (string, error) {
+type exportData struct {
+	tableName   string
+	dateField   string
+	dateSuffix  string
+	dbExportDir string
+	startTime   string
+	endTime     string
+}
+
+func makeExport(data exportData) (string, error) {
 	/* /var/lib/mysql-files/ */
-	fileName := fmt.Sprintf("%s-%s.csv", tableName, dateSuffix)
-	export_dir := strings.ReplaceAll(fmt.Sprintf("%s/%s", db_export_dir, fileName), " ", "-")
+	fileName := fmt.Sprintf("%s-%s.csv", data.tableName, data.dateSuffix)
+	export_dir := strings.ReplaceAll(fmt.Sprintf("%s/%s", data.dbExportDir, fileName), " ", "-")
 	log.Printf("Export Dir: %s", export_dir)
 
 	export_query_str := fmt.Sprintf(
-		"SELECT * INTO OUTFILE '%s' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' FROM %s", export_dir, tableName)
+		"SELECT * INTO OUTFILE '%s' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' FROM %s where %s between '%s' and '%s'",
+		export_dir, data.tableName, data.dateField, data.startTime, data.endTime)
+
 	log.Printf("Query: %s", export_query_str)
 	_, err := db.Exec(export_query_str)
 	log.Println("Completed")
 	// errCheck(err) return fileName, err
 	return fileName, err
-}
-
-func loadDBTables() []string {
-	rows, err := db.Query("SHOW TABLES;")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	tableNames := make([]string, 0)
-
-	for rows.Next() {
-		var tableName string
-		err = rows.Scan(&tableName)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		tableNames = append(tableNames, tableName)
-	}
-
-	return tableNames
 }
 
 func updateNextBackupSchedule(oldEndTime time.Time, backUpDuration int) (time.Time, time.Time) {
@@ -65,7 +55,7 @@ func updateNextBackupSchedule(oldEndTime time.Time, backUpDuration int) (time.Ti
 	return startTime, endTime
 }
 
-func insertNextBackupSchedule(table string, oldEndTime time.Time, backUpDuration int) (string, error) {
+func insertNextBackupSchedule(table, dateField string, oldEndTime time.Time, backUpDuration int) (string, error) {
 	startTime, endTime := updateNextBackupSchedule(oldEndTime, backUpDuration)
 
 	log.Printf(">>>>>>>>>>>>>>>>>>Inserting new schedule<<<<<<<<<<<<<<<<<<\n")
@@ -75,9 +65,10 @@ func insertNextBackupSchedule(table string, oldEndTime time.Time, backUpDuration
 	log.Printf("Duration: %v to %v", startTime, endTime)
 
 	ref, err := createBackEvent(CreateBackEventData{
-		startTime: ToDBTime(startTime),
-		endTime:   ToDBTime(endTime),
 		table:     table,
+		dateField: dateField,
+		endTime:   ToDBTime(endTime),
+		startTime: ToDBTime(startTime),
 		state:     PROCESS_STATE_BACKUP,
 		status:    BACKUP_STATUS_PENDING,
 	})
@@ -103,24 +94,6 @@ func createManifest(export_dir string, manifest []ManifestData) {
 	}
 
 	log.Printf("Manifest data written to %s", manifest_dir)
-}
-
-func getExportableTables() []string {
-	db_export_tables := os.Getenv("DB_EXPORT_TABLES")
-	is_all_tables := db_export_tables == "__all__"
-
-	var tables []string
-
-	if is_all_tables {
-		tables = loadDBTables()
-	} else {
-		tables = strings.Split(db_export_tables, ",")
-	}
-
-	// now := time.Now()
-	// formattedDate := now.Format(time.RFC3339)
-
-	return tables
 }
 
 func BackUpReceiver() {
@@ -160,7 +133,13 @@ func BackUpReceiver() {
 		updateEventStatus(e.ID, BACKUP_STATUS_PROCESSING)
 		dateSuffix := fmt.Sprintf("%v-%v", e.StartTimeStr, e.EndTimeStr)
 
-		fileName, err := makeExport(e.TableName, dateSuffix, folder_path)
+		fileName, err := makeExport(exportData{
+			tableName:  e.TableName,
+			dateField:  e.dateField,
+			dateSuffix: dateSuffix,
+			endTime:    e.EndTimeStr,
+			startTime:  e.StartTimeStr,
+		})
 		if err != nil {
 			updateEventStatus(e.ID, BACKUP_STATUS_FAILED)
 			// errCheck(err)
@@ -171,13 +150,14 @@ func BackUpReceiver() {
 		endTime, err := FromDBTime(e.EndTimeStr)
 		errCheck(err)
 
-		ref, err := insertNextBackupSchedule(e.TableName, endTime, backUpDuration)
+		ref, err := insertNextBackupSchedule(e.TableName, e.dateField, endTime, backUpDuration)
 		errCheck(err)
 
 		manifestData = append(manifestData, ManifestData{
 			Table:     e.TableName,
 			FileName:  fileName,
 			Ref:       ref,
+			DateField: e.dateField,
 			EndTime:   e.EndTimeStr,
 			StartTime: e.StartTimeStr,
 		})
@@ -187,9 +167,7 @@ func BackUpReceiver() {
 }
 
 func ManualBackup(startTime time.Time, backUpDuration int) {
-	tables := getExportableTables()
-
-	for _, table := range tables {
-		insertNextBackupSchedule(table, startTime, backUpDuration)
+	for _, value := range RegisteredTables {
+		insertNextBackupSchedule(value.TableName, value.DateField, startTime, backUpDuration)
 	}
 }

@@ -42,6 +42,7 @@ func insertRestoreEvent(md ManifestData) {
 		startTime: md.StartTime,
 		endTime:   md.EndTime,
 		table:     md.Table,
+		dateField: md.DateField,
 		state:     PROCESS_STATE_RESTORE,
 		status:    BACKUP_STATUS_COMPLETED,
 	})

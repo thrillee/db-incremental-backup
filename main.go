@@ -7,6 +7,7 @@ import (
 	"db-incremental-backup/cmd"
 	"db-incremental-backup/internals"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -16,6 +17,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	tableConfigDir := os.Getenv("TABLE_CONFIG_DIR")
+	internals.SetupTable(tableConfigDir)
 
 	db := internals.StartDB()
 	defer db.Close()

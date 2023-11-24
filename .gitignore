@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/go,vscode,env,dotenv
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,vscode,env,dotenv
 
+.git
+table-config.json
+
 ### dotenv ###
 .env
 db-incremental-backup.env

@@ -18,6 +18,7 @@ const (
 
 	PROCESS_STATE_BACKUP  = "back_up"
 	PROCESS_STATE_RESTORE = "restore"
+	PROCESS_STATE_ARCHIVE = "archive"
 )
 
 type CreateBackEventData struct {
@@ -25,6 +26,7 @@ type CreateBackEventData struct {
 	startTime string
 	endTime   string
 	state     string
+	dateField string
 	status    int
 }
 
@@ -35,6 +37,7 @@ type BackupEvent struct {
 	State        string         `db:"state"`
 	StartTimeStr string         `db:"start_time"`
 	EndTimeStr   string         `db:"end_time"`
+	dateField    string         `db:"dateField"`
 	StatusMsg    sql.NullString `db:"status_msg"`
 	FilePath     sql.NullString `db:"file_path"`
 	Notify       bool           `db:"notify"`
@@ -67,7 +70,10 @@ func loadBackEvent(sqlQuery string) []BackupEvent {
 
 	for rows.Next() {
 		be := BackupEvent{}
-		err := rows.Scan(&be.ID, &be.TableName, &be.Status, &be.State, &be.StartTimeStr, &be.EndTimeStr, &be.StatusMsg, &be.FilePath, &be.Notify, &be.Ref, &be.ModifiedStr, &be.CreatedStr)
+		err := rows.Scan(
+			&be.ID, &be.TableName, &be.Status, &be.State, &be.StartTimeStr,
+			&be.EndTimeStr, &be.dateField, &be.StatusMsg, &be.FilePath, &be.Notify,
+			&be.Ref, &be.ModifiedStr, &be.CreatedStr)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -84,9 +90,9 @@ func createBackEvent(be CreateBackEventData) (string, error) {
 	startTimeStr := be.startTime
 	endTimeStr := be.endTime
 
-	columns := "(table_name, status, state, start_time, end_time, status_msg, file_path, notify, modified, created, ref)"
-	values := fmt.Sprintf("('%s', %d, '%s', '%s', '%s', null, null, 0, NOW(), NOW(), '%s')",
-		be.table, be.status, be.state, startTimeStr, endTimeStr, ref)
+	columns := "(table_name, status, state, start_time, end_time, dateField, status_msg, file_path, notify, modified, created, ref)"
+	values := fmt.Sprintf("('%s', %d, '%s', '%s', '%s', '%s', null, null, 0, NOW(), NOW(), '%s')",
+		be.table, be.status, be.state, startTimeStr, endTimeStr, be.dateField, ref)
 	insertQuery := fmt.Sprintf("INSERT INTO backupevent %s VALUES %s", columns, values)
 
 	_, err := db.Exec(insertQuery)
