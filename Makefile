@@ -1,6 +1,6 @@
 # General targets
 
-BINARY_NAME=dbHelper
+BINARY_NAME=ddms
 
 build: 
 	GOARCH=amd64 GOOS=darwin go build -o ${BINARY_NAME}-darwin main.go

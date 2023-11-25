@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	err := godotenv.Load("db-incremental-backup.env")
+	// err := godotenv.Load("db-incremental-backup.env")
+	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

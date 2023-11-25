@@ -23,6 +23,9 @@ dbresults
 *.so
 *.dylib
 db-incremental-backup
+*-linux
+*-windows
+*-darwin
 
 # Test binary, built with `go test -c`
 *.test

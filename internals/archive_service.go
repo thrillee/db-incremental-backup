@@ -25,7 +25,7 @@ func DoTableArchive(startDate, endDate time.Time, table string) {
 
 	dateSuffix := strings.ReplaceAll(fmt.Sprintf("archive-%s-%s", dbStartTime, dbEndTime), " ", "-")
 
-	fileName, exportError := makeExport(exportData{
+	_, exportError := makeExport(exportData{
 		tableName:  config.TableName,
 		dateField:  config.DateField,
 		startTime:  dbStartTime,
@@ -38,17 +38,15 @@ func DoTableArchive(startDate, endDate time.Time, table string) {
 		return
 	}
 
-	log.Printf("Backup Dir -> %s\n", fileName)
+	// log.Printf("Deleting %s from %s to %s...\n", table, dbStartTime, dbEndTime)
+	// deleteQuery := fmt.Sprintf("delete from %s where %s between '%s' and '%s'",
+	// table, config.DateField, dbStartTime, dbEndTime)
 
-	log.Printf("Deleting %s from %s to %s...\n", table, dbStartTime, dbEndTime)
-	deleteQuery := fmt.Sprintf("delete from %s where %s between '%s' and '%s'",
-		table, config.DateField, dbStartTime, dbEndTime)
-
-	_, dbError := db.Exec(deleteQuery)
-	if dbError != nil {
-		log.Println(dbError)
-		return
-	}
+	// _, dbError := db.Exec(deleteQuery)
+	// if dbError != nil {
+	// log.Println(dbError)
+	// return
+	// }
 
 	beResult, beError := createBackEvent(CreateBackEventData{
 		status:    BACKUP_STATUS_COMPLETED,

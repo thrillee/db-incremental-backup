@@ -23,8 +23,8 @@ func fromDBTime(dbTime string) (time.Time, error) {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "db-incremental-backup",
-	Short: "This is a program that helps restore and backup database table",
+	Use:   `DDMS - Database Data Management Service`,
+	Short: "This service is created to help handle data work like, backups, restore, archiving",
 	Long:  `This is a program that helps restore and backup database table. `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
@@ -49,5 +49,4 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

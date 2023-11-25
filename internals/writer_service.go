@@ -23,28 +23,37 @@ type ManifestData struct {
 }
 
 type exportData struct {
-	tableName   string
-	dateField   string
-	dateSuffix  string
-	dbExportDir string
-	startTime   string
-	endTime     string
+	tableName  string
+	dateField  string
+	dateSuffix string
+	startTime  string
+	endTime    string
 }
 
 func makeExport(data exportData) (string, error) {
 	/* /var/lib/mysql-files/ */
+	export_dir := os.Getenv("DB_EXPORT_DIR")
 	fileName := fmt.Sprintf("%s-%s.csv", data.tableName, data.dateSuffix)
-	export_dir := strings.ReplaceAll(fmt.Sprintf("%s/%s", data.dbExportDir, fileName), " ", "-")
-	log.Printf("Export Dir: %s", export_dir)
+	export_path := strings.ReplaceAll(fmt.Sprintf("%s%s", export_dir, fileName), " ", "-")
+	log.Printf("Export -> %s", export_path)
+
+	count_query_str := fmt.Sprintf("select count(*) from %s where %s between '%s' and '%s'",
+		data.tableName, data.dateField, data.startTime, data.endTime)
+	count_result := db.QueryRow(count_query_str)
+
+	var rowCount int
+	err := count_result.Scan(&rowCount)
+	errCheck(err)
+
+	log.Printf("Record count -> %d", rowCount)
 
 	export_query_str := fmt.Sprintf(
 		"SELECT * INTO OUTFILE '%s' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\\n' FROM %s where %s between '%s' and '%s'",
-		export_dir, data.tableName, data.dateField, data.startTime, data.endTime)
+		export_path, data.tableName, data.dateField, data.startTime, data.endTime)
 
-	log.Printf("Query: %s", export_query_str)
-	_, err := db.Exec(export_query_str)
-	log.Println("Completed")
-	// errCheck(err) return fileName, err
+	_, err = db.Exec(export_query_str)
+	errCheck(err)
+
 	return fileName, err
 }
 
