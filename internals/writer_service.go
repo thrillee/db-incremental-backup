@@ -1,7 +1,6 @@
 package internals
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -20,21 +19,27 @@ type ManifestData struct {
 	StartTime string `json:"startTime"`
 	EndTime   string `json:"endTime"`
 	DateField string `json:"dateField"`
+	file_path string
 }
 
 type exportData struct {
-	tableName  string
-	dateField  string
-	dateSuffix string
-	startTime  string
-	endTime    string
+	tableName        string
+	dateField        string
+	dateSuffix       string
+	startTime        string
+	endTime          string
+	exportFolderPath string
 }
 
-func makeExport(data exportData) (string, error) {
+type exportResult struct {
+	fileName string
+	filePath string
+}
+
+func makeExport(data exportData) (exportResult, error) {
 	/* /var/lib/mysql-files/ */
-	export_dir := os.Getenv("DB_EXPORT_DIR")
 	fileName := fmt.Sprintf("%s-%s.csv", data.tableName, data.dateSuffix)
-	export_path := strings.ReplaceAll(fmt.Sprintf("%s%s", export_dir, fileName), " ", "-")
+	export_path := strings.ReplaceAll(fmt.Sprintf("%s%s", data.exportFolderPath, fileName), " ", "-")
 	log.Printf("Export -> %s", export_path)
 
 	count_query_str := fmt.Sprintf("select count(*) from %s where %s between '%s' and '%s'",
@@ -54,7 +59,10 @@ func makeExport(data exportData) (string, error) {
 	_, err = db.Exec(export_query_str)
 	errCheck(err)
 
-	return fileName, err
+	return exportResult{
+		fileName: fileName,
+		filePath: export_path,
+	}, err
 }
 
 func updateNextBackupSchedule(oldEndTime time.Time, backUpDuration int) (time.Time, time.Time) {
@@ -85,27 +93,7 @@ func insertNextBackupSchedule(table, dateField string, oldEndTime time.Time, bac
 	return ref, err
 }
 
-func createManifest(export_dir string, manifest []ManifestData) {
-	file_ref := uuid.New().String()
-	fileName := fmt.Sprintf("%s-%s.json", "manifest", file_ref)
-
-	manifest_dir := fmt.Sprintf("%s/%s", export_dir, fileName)
-
-	b, err := json.MarshalIndent(manifest, "", "\t")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	b = append(b, byte('\n'))
-
-	if err := os.WriteFile(manifest_dir, b, 0644); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Manifest data written to %s", manifest_dir)
-}
-
-func BackUpReceiver() {
+func BackUpReceiver(zipOutput bool) {
 	backUpDuration, err := strconv.Atoi(os.Getenv("DURATION_HR"))
 	errCheck(err)
 
@@ -142,12 +130,13 @@ func BackUpReceiver() {
 		updateEventStatus(e.ID, BACKUP_STATUS_PROCESSING)
 		dateSuffix := fmt.Sprintf("%v-%v", e.StartTimeStr, e.EndTimeStr)
 
-		fileName, err := makeExport(exportData{
-			tableName:  e.TableName,
-			dateField:  e.dateField,
-			dateSuffix: dateSuffix,
-			endTime:    e.EndTimeStr,
-			startTime:  e.StartTimeStr,
+		exportResult, err := makeExport(exportData{
+			tableName:        e.TableName,
+			dateField:        e.dateField,
+			dateSuffix:       dateSuffix,
+			endTime:          e.EndTimeStr,
+			startTime:        e.StartTimeStr,
+			exportFolderPath: folder_path,
 		})
 		if err != nil {
 			updateEventStatus(e.ID, BACKUP_STATUS_FAILED)
@@ -163,16 +152,21 @@ func BackUpReceiver() {
 		errCheck(err)
 
 		manifestData = append(manifestData, ManifestData{
-			Table:     e.TableName,
-			FileName:  fileName,
 			Ref:       ref,
+			Table:     e.TableName,
 			DateField: e.dateField,
 			EndTime:   e.EndTimeStr,
 			StartTime: e.StartTimeStr,
+			FileName:  exportResult.fileName,
 		})
 	}
 
-	createManifest(folder_path, manifestData)
+	CreateManifest(CreateManifestRequest{
+		AllowZip:   zipOutput,
+		ExportDir:  folder_path,
+		Manifiests: manifestData,
+		Tag:        uuid.New().String(),
+	})
 }
 
 func ManualBackup(startTime time.Time, backUpDuration int) {
