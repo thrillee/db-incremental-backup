@@ -32,11 +32,11 @@ func writeToZip(file_path, fileName string, zipWriter *zip.Writer) {
 }
 
 func createZip(req CreateManifestRequest, manifestPath string) {
-	fmt.Println("creating zip archive...")
+	log.Println("creating zip archive...")
 
 	fileName := fmt.Sprintf("archive-%s.zip", req.Tag)
 	archive_path := fmt.Sprintf("%s/%s", req.ExportDir, fileName)
-	fmt.Printf("ZIP OUT DIR -> %s....\n", archive_path)
+	log.Printf("ZIP OUT DIR -> %s....\n", archive_path)
 
 	archive, err := os.Create(archive_path)
 	errCheck(err)
@@ -55,6 +55,20 @@ func createZip(req CreateManifestRequest, manifestPath string) {
 	}
 
 	writeToZip(manifestPath, "manifest.json", zipWriter)
+
+	// cleanZipFiles(req.Manifiests, manifestPath)
+}
+
+func cleanZipFiles(manifests []ManifestData, manifestPath string) {
+	log.Println("<<<<<<<<<<<Cleaning ZIP Files>>>>>>>>>>>")
+	defer log.Println("<<<<<<<<<<<Cleaning ZIP Files Completed>>>>>>>>>>>")
+
+	for _, md := range manifests {
+		log.Printf("Deleting -> %s....\n", md.file_path)
+		os.Remove(md.file_path)
+	}
+	os.Remove(manifestPath)
+	log.Printf("Deleting -> %s....\n", manifestPath)
 }
 
 func CreateManifest(req CreateManifestRequest) {

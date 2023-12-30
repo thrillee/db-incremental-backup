@@ -22,6 +22,9 @@ func main() {
 	tableConfigDir := os.Getenv("TABLE_CONFIG_DIR")
 	internals.SetupTable(tableConfigDir)
 
+	customQueryPath := os.Getenv("CUSTOM_QUERY_PATH")
+	internals.LoadCustomerQuery(customQueryPath)
+
 	db := internals.StartDB()
 	defer db.Close()
 

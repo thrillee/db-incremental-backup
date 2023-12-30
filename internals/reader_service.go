@@ -55,7 +55,7 @@ func loadCSV(md ManifestData, backUpFileDir string) {
 	log.Printf("Table: %s", md.Table)
 	log.Printf("Backup File: %s", backFilePath)
 
-	loadQuery := fmt.Sprintf("LOAD DATA INFILE '%s' INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n'",
+	loadQuery := fmt.Sprintf("LOAD DATA INFILE '%s' IGNORE INTO TABLE %s FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n' ",
 		backFilePath, md.Table)
 	_, err := db.Exec(loadQuery)
 	fmt.Println(err)
