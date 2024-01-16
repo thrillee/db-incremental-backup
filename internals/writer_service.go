@@ -39,7 +39,7 @@ type exportResult struct {
 func makeExport(data exportData) (exportResult, error) {
 	/* /var/lib/mysql-files/ */
 	fileName := fmt.Sprintf("%s-%s.csv", data.tableName, data.dateSuffix)
-	export_path := strings.ReplaceAll(fmt.Sprintf("%s%s", data.exportFolderPath, fileName), " ", "-")
+	export_path := strings.ReplaceAll(fmt.Sprintf("%s/%s", data.exportFolderPath, fileName), " ", "-")
 	log.Printf("Export -> %s", export_path)
 
 	count_query_str := fmt.Sprintf("select count(*) from %s where %s between '%s' and '%s'",
